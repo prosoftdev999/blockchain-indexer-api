@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -16,3 +18,26 @@ class IndexerStatusResponse(BaseModel):
     latest_indexed_block: int | None
     confirmation_blocks: int
     status: str
+
+
+class SyncRequest(BaseModel):
+    batch_size: int | None = Field(
+        default=None,
+        ge=1,
+        le=100,
+        description="Maximum number of confirmed blocks to index.",
+    )
+
+
+class SyncTaskResponse(BaseModel):
+    status: str
+    task_id: str
+    message: str
+
+
+class SyncResultResponse(BaseModel):
+    task_id: str
+    state: str
+    ready: bool
+    successful: bool | None
+    result: Any | None

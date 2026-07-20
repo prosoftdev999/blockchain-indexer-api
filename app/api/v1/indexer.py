@@ -7,6 +7,9 @@ from app.db.session import get_db
 from app.schemas.indexer import (
     IndexBlockResponse,
     IndexerStatusResponse,
+    SyncRequest,
+    SyncResultResponse,
+    SyncTaskResponse,
 )
 from app.services.blockchain import blockchain_client
 from app.services.indexer import (
@@ -14,6 +17,10 @@ from app.services.indexer import (
     ChainIDMismatchError,
     blockchain_indexer,
 )
+from celery.result import AsyncResult
+
+from app.workers.celery_app import celery_app
+from app.workers.tasks import sync_confirmed_blocks
 
 
 router = APIRouter()
@@ -99,4 +106,57 @@ async def get_status(
             if indexer_state is not None
             else "not_started"
         ),
+    )
+
+@router.post(
+    "/sync",
+    response_model=SyncTaskResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Queue confirmed-block synchronization",
+)
+async def start_sync(
+    request: SyncRequest,
+) -> SyncTaskResponse:
+    task = sync_confirmed_blocks.delay(
+        batch_size=request.batch_size,
+    )
+
+    return SyncTaskResponse(
+        status="queued",
+        task_id=task.id,
+        message="Blockchain synchronization task was queued.",
+    )
+
+
+@router.get(
+    "/tasks/{task_id}",
+    response_model=SyncResultResponse,
+    summary="Get synchronization task status",
+)
+async def get_sync_task(
+    task_id: str,
+) -> SyncResultResponse:
+    task_result = AsyncResult(
+        task_id,
+        app=celery_app,
+    )
+
+    result: object | None = None
+
+    if task_result.ready():
+        try:
+            result = task_result.result
+        except Exception as exc:
+            result = str(exc)
+
+    return SyncResultResponse(
+        task_id=task_id,
+        state=task_result.state,
+        ready=task_result.ready(),
+        successful=(
+            task_result.successful()
+            if task_result.ready()
+            else None
+        ),
+        result=result,
     )

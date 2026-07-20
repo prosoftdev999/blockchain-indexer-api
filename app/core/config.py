@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     confirmation_blocks: int = 12
     indexer_batch_size: int = 10
 
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
+
+    sync_batch_size: int = 5
+    sync_interval_seconds: int = 30
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
