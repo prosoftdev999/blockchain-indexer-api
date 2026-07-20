@@ -53,3 +53,7 @@ redis-data/
 build/
 dist/
 *.egg-info/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
