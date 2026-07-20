@@ -8,11 +8,14 @@ async def get_transaction_by_hash(
     session: AsyncSession,
     transaction_hash: str,
 ) -> Transaction | None:
+    normalized_hash = transaction_hash.lower()
+
     result = await session.execute(
         select(Transaction).where(
-            Transaction.transaction_hash == transaction_hash
+            func.lower(Transaction.transaction_hash) == normalized_hash
         )
     )
+
     return result.scalar_one_or_none()
 
 
@@ -36,7 +39,9 @@ async def list_transactions(
         .offset(offset)
     )
 
-    return list(result.scalars().all()), total
+    transactions = list(result.scalars().all())
+
+    return transactions, total
 
 
 async def list_transactions_by_address(
@@ -68,4 +73,6 @@ async def list_transactions_by_address(
         .offset(offset)
     )
 
-    return list(result.scalars().all()), total
+    transactions = list(result.scalars().all())
+
+    return transactions, total
