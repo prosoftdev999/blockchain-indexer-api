@@ -1,4 +1,77 @@
 services:
+  api:
+    build: .
+    container_name: blockchain-indexer-api
+    restart: unless-stopped
+
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+
+    env_file:
+      - .env
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    volumes:
+      - .:/app
+
+  worker:
+    build: .
+    container_name: blockchain-indexer-worker
+    restart: unless-stopped
+
+    command: >
+      celery
+      -A app.workers.celery_app:celery_app
+      worker
+      --loglevel=info
+      --concurrency=1
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    volumes:
+      - .:/app
+
+  beat:
+    build: .
+    container_name: blockchain-indexer-beat
+    restart: unless-stopped
+
+    command: >
+      celery
+      -A app.workers.celery_app:celery_app
+      beat
+      --loglevel=info
+      --schedule=/tmp/celerybeat-schedule
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    volumes:
+      - .:/app
+
   db:
     image: postgres:17-alpine
     container_name: blockchain-indexer-postgres
@@ -16,7 +89,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d blockchain_indexer"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d blockchain_indexer"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +107,12 @@ services:
       - "6379:6379"
 
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

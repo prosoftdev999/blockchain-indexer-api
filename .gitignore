@@ -54,6 +54,7 @@ build/
 dist/
 *.egg-info/
 
-# Celery
+# Celery runtime files
 celerybeat-schedule
+celerybeat-schedule.*
 celerybeat.pid

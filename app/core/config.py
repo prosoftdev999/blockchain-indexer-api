@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     sync_batch_size: int = 5
     sync_interval_seconds: int = 30
+    sync_lock_name: str = "blockchain-indexer:sync-lock"
+    sync_lock_timeout_seconds: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env",
