@@ -7,6 +7,8 @@ from app.db.session import AsyncSessionLocal
 
 from app.services.blockchain import blockchain_client
 
+from app.api.v1.router import api_router
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -16,6 +18,10 @@ app = FastAPI(
     ),
 )
 
+app.include_router(
+    api_router,
+    prefix="/api/v1",
+)
 
 @app.get("/", tags=["General"])
 async def root() -> dict[str, str]:
